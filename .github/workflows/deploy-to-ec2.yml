@@ -69,6 +69,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: .env
           target: /home/ec2-user
+          
       - name: Run deploy script on EC2
         uses: appleboy/ssh-action@v1.2.5
         with:
