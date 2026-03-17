@@ -52,7 +52,7 @@ jobs:
     needs: build_image
     steps:
       - name: Copy deploy script to EC2
-        uses: appleboy/scp-action@v0.1.5
+        uses: appleboy/scp-action@v1.0.0
         with:
             host: ${{ secrets.EC2_HOST }}
             username: ${{ secrets.EC2_USER }}
