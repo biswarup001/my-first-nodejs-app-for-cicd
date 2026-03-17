@@ -1,0 +1,69 @@
+name: GitHub Action Workflow for deploying to EC2
+
+on:
+  push:
+    branches: 
+      - main
+
+jobs:
+  git_leaks_scan:
+    name: Checking for leaking credentials
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout code (full history for gitleaks)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_image:
+    name: Build the docker image and save in artifacts
+    runs-on: ubuntu-latest
+    needs: git_leaks_scan
+    outputs:
+      short_sha: ${{ steps.sha.outputs.SHORT_SHA }}
+    steps:
+      - name: Checking out the code
+        uses: actions/checkout@v4
+      - name: Setup short SHA for later use
+        id: sha
+        run: |
+          echo "SHORT_SHA=${GITHUB_SHA::10}" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "${{ vars.DOCKER_USERNAME }}"
+          password: "${{ secrets.DOCKER_PASSWORD }}"
+      - name: Build the docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ vars.DOCKER_USERNAME }}/node-app:${{ steps.sha.outputs.SHORT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_image
+    steps:
+      - name: Copy deploy script to EC2
+        uses: appleboy/scp-action@v0.1.5
+        with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USER }}
+            source: devops-script/
+            target: /home/ec2-user
+
+      - name: Run deploy script on EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USER }}
+            script: |
+                chmod +x /home/ec2-user/deploy.sh
+                /home/ec2-user/deploy.sh ${{ needs.build_image.outputs.short_sha }}

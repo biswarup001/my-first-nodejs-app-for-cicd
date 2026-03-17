@@ -6,3 +6,4 @@ Dockerfile
 .gitignore
 .env
 secrets
+devops-script
