@@ -47,21 +47,21 @@ fi
 # Pull the latest image
 # ------------------------
 echo "Pulling Docker image biswarup007/node-app:$IMAGE_TAG..."
-docker pull biswarup007/node-app:$IMAGE_TAG
+sudo docker pull biswarup007/node-app:$IMAGE_TAG
 
 
 # ------------------------
 # Stop and remove old container if exists
 # ------------------------
 echo "Stopping and removing old container (if exists)..."
-docker stop $CONTAINER_NAME || true
-docker rm $CONTAINER_NAME || true
+sudo docker stop $CONTAINER_NAME || true
+sudo docker rm $CONTAINER_NAME || true
 
 
 # ------------------------
 # Run the new container
 # ------------------------
-docker run -d \
+sudo docker run -d \
   --name $CONTAINER_NAME \
   --env-file $ENV_FILE \
   -p 80:3000 \
